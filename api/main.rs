@@ -12,6 +12,8 @@ use std::error::Error;
 use rocket::{Rocket, Build, State};
 use chrono::prelude::*;
 
+// this
+
 #[macro_use]
 extern crate rocket;
 use rocket::{get, http::Status, serde::json::Json};
@@ -40,6 +42,7 @@ async fn rocket() -> _ {
 ///
 #[get("/")]
 fn hello() -> Result<Json<String>, Status> {
+  println!("Hello from rust and mongoDB");
   Ok(Json(String::from("Hello from rust and mongoDB")))
 }
 
@@ -57,10 +60,12 @@ fn hello() -> Result<Json<String>, Status> {
 #[get("/events")]
 async fn get_events(db: &State<Database>) -> Result<Json<Vec<Event>>, Status> {
   let events = db.get_events().await.unwrap();
+  println!("{:?}", events);
   Ok(Json(events))
 }
 
 ///
+/// 
 /// Get a single event from the database
 /// 
 /// ## Parameters
@@ -95,6 +100,7 @@ async fn put_event(db: &State<Database>, event: Json<Event>) -> Result<Json<Stri
   Ok(Json(id))
 }
 
+/// do stuff
 async fn load_dummy_data(db: &Database) {
   // create 10 events and add them to db
   for i in 0..10 {
