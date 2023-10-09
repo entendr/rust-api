@@ -4,49 +4,45 @@
 ///
 
 mod events;
+mod database;
 // use mini_redis::{client, Result};
 use dotenv::dotenv;
 use mongodb::{Client, options::ClientOptions, bson::doc};
 use std::error::Error;
+use rocket::{Rocket, Build, State};
 
 #[macro_use]
 extern crate rocket;
 use rocket::{get, http::Status, serde::json::Json};
+
+use crate::database::Database;
+use crate::events::Event;
 
 #[get("/")]
 fn hello() -> Result<Json<String>, Status> {
   Ok(Json(String::from("Hello from rust and mongoDB")))
 }
 
-#[launch]
-fn rocket() -> _ {
-  rocket::build().mount("/", routes![hello])
+#[get("/events")]
+async fn get_events(db: &State<Database>) -> Result<Json<Vec<Event>>, Status> {
+  let events = db.get_events().await.unwrap();
+  Ok(Json(events))
 }
 
+#[put("/events", data = "<event>")]
+async fn put_event(db: &State<Database>, event: Json<Event>) -> Result<Json<String>, Status> {
+  let id = db.insert_event(event.into_inner()).await.unwrap();
+  Ok(Json(id))
+}
 
-// #[tokio::main]
-// async fn main() -> Result<(), Box<dyn Error>> {
-
-//   // load env vars from .env file
-//   dotenv().ok();
+#[launch]
+async fn rocket() -> _ {
+  let db = database::Database::init().await.unwrap();
   
-//   // load uri from env
-//   let uri = std::env::var("MONGODB_URI").expect("MONGODB_URI not set");
+  rocket::build()
+    .manage(db)
+    .mount("/", routes![hello])
+    .mount("/", routes![get_events])
+    .mount("/", routes![put_event])
+}
 
-
-//   // connect to mongodb
-//   let client_options = ClientOptions::parse(&uri).await?;
-//   let client = Client::with_options(client_options)?;
-
-//   // get a handle to the database
-//   let db = client.database("test");
-
-//   // get a handle to the collection
-//   let coll = db.collection("test");
-
-//   // insert some documents
-//   coll.insert_one(doc! { "x": 1 }, None).await?;
-
-//   // return an option
-//   Ok(())
-// }

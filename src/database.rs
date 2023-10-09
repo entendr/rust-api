@@ -1,12 +1,11 @@
-use std::env;
-extern crate dotenv;
 use dotenv::dotenv;
+use rocket::futures::TryStreamExt;
 use std::error::Error;
 use mongodb::{
-    bson::{extjson::de::Error as DatabaseError},
-    results::{ InsertOneResult},
+    bson::{extjson::de::Error as JSONError, oid::ObjectId, doc},
     options::ClientOptions,
     Client, Collection,
+    error::Error as DatabaseError
 };
 use crate::events::Event;
 
@@ -15,9 +14,8 @@ pub struct Database {
 }
 
 impl Database {
-  pub async fn init() -> Self {
+  pub async fn init() -> Result<Self, Box<dyn Error>> {
     dotenv().ok();
-      //   dotenv().ok();
 
     // load uri from env
     let uri = std::env::var("MONGODB_URI").expect("MONGODB_URI not set");
@@ -33,21 +31,66 @@ impl Database {
     // get a handle to the collection
     let col = db.collection("events");
     
-    Database { col }
+    Ok(Database { col })
   }
 
-  pub async fn get_events(&self) -> Result<Vec<Event>, DatabaseError> {
+  /// Insert a new event into the database
+  /// 
+  /// ## Parameters
+  /// 
+  /// * `event` - The event to insert
+  /// 
+  /// ## Returns
+  /// 
+  /// The id of the inserted event wrapped in a Result
+  pub async fn insert_event(&self, event: Event) -> Result<String, DatabaseError> {
+    let result = self.col.insert_one(event, None).await;
+    match result {
+      Ok(result) => Ok(result.inserted_id.as_object_id().unwrap().to_string()),
+      Err(e) => Err(e),
+    }
+  }
+
+  /// Get all events from the database
+  /// 
+  /// ## Parameters
+  /// 
+  /// None
+  /// 
+  /// ## Returns
+  /// 
+  /// A vector of events wrapped in a Result
+  pub async fn get_events(&self) -> Result<Vec<Event>, JSONError> {
     let cursor = self
       .col
       .find(None, None)
-      .await
-      .ok()
+      .await.ok()
       .expect("Error finding events");
-    let events: Vec<Event> = cursor.map(|doc| doc.unwrap()).collect::<Vec<Event>>();
+    let events = match cursor.try_collect().await.ok() {
+      Some(events) => events,
+      None => Vec::new(),
+    };
     Ok(events)
   }
 
-  pub async fn get_event(&self) -> Result<Event, DatabaseError> {
-    
+  /// Get a single event with the given id
+  /// 
+  /// ## Parameters
+  /// 
+  /// * `id` - The id of the event to get
+  ///   
+  /// ## Returns
+  /// 
+  /// An event wrapped in a Result
+  pub async fn get_event(&self, id: String) -> Result<Event, JSONError> {
+    let oid = ObjectId::parse_str(&id).unwrap();
+    let filter = doc! { "_id": oid };
+    let event = self
+      .col
+      .find_one(filter, None)
+      .await
+      .ok()
+      .expect("Error finding event");
+    Ok(event.unwrap())
   }
 }
