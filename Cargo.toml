@@ -9,3 +9,6 @@ edition = "2021"
 tokio       = { version = "1", features = ["full"] }
 mini-redis  = "0.4"
 mongodb     = "2.7.0"
+dotenv      = "0.15.0"
+rocket      = {version = "0.5.0-rc.2", features = ["json"]}
+serde       = {version = "1.0.130", features = ["derive"]}

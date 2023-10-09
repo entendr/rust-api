@@ -3,20 +3,50 @@
 /// main entry point for the program
 ///
 
-use mini_redis::{client, Result};
+mod events;
+// use mini_redis::{client, Result};
+use dotenv::dotenv;
+use mongodb::{Client, options::ClientOptions, bson::doc};
+use std::error::Error;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-  // Open a connection to the mini-redis address.
-  let mut client = client::connect("127.0.0.1:6379").await?;
+#[macro_use]
+extern crate rocket;
+use rocket::{get, http::Status, serde::json::Json};
 
-  // Set the key "hello" with value "world"
-  client.set("hello", "world".into()).await?;
-
-  // Get key "hello"
-  let result = client.get("hello").await?;
-
-  println!("got value from the server; result={:?}", result);
-
-  Ok(())
+#[get("/")]
+fn hello() -> Result<Json<String>, Status> {
+  Ok(Json(String::from("Hello from rust and mongoDB")))
 }
+
+#[launch]
+fn rocket() -> _ {
+  rocket::build().mount("/", routes![hello])
+}
+
+
+// #[tokio::main]
+// async fn main() -> Result<(), Box<dyn Error>> {
+
+//   // load env vars from .env file
+//   dotenv().ok();
+  
+//   // load uri from env
+//   let uri = std::env::var("MONGODB_URI").expect("MONGODB_URI not set");
+
+
+//   // connect to mongodb
+//   let client_options = ClientOptions::parse(&uri).await?;
+//   let client = Client::with_options(client_options)?;
+
+//   // get a handle to the database
+//   let db = client.database("test");
+
+//   // get a handle to the collection
+//   let coll = db.collection("test");
+
+//   // insert some documents
+//   coll.insert_one(doc! { "x": 1 }, None).await?;
+
+//   // return an option
+//   Ok(())
+// }
