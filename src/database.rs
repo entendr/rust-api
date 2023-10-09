@@ -83,7 +83,7 @@ impl Database {
   /// 
   /// An event wrapped in a Result
   pub async fn get_event(&self, id: String) -> Result<Event, JSONError> {
-    let oid = ObjectId::parse_str(&id).unwrap();
+    let oid = ObjectId::parse_str(&id).unwrap_or_default();
     let filter = doc! { "_id": oid };
     let event = self
       .col
@@ -91,6 +91,14 @@ impl Database {
       .await
       .ok()
       .expect("Error finding event");
-    Ok(event.unwrap())
+    Ok(event.unwrap_or_default())
   }
+}
+
+// define macro to initialize db
+#[macro_export]
+macro_rules! db {
+  () => {
+    Database::init().await.unwrap()
+  };
 }

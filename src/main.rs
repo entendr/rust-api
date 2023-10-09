@@ -56,7 +56,8 @@ async fn get_events(db: &State<Database>) -> Result<Json<Vec<Event>>, Status> {
 /// 
 #[get("/events/<id>")]
 async fn get_event(db: &State<Database>, id: String) -> Result<Json<Event>, Status> {
-  let event: Event = db.get_event(id).await.unwrap();
+  let event: Event = db.get_event(id).await.unwrap_or_default();
+  println!("{:?}", event);
   Ok(Json(event))
 }
 
@@ -80,7 +81,7 @@ async fn put_event(db: &State<Database>, event: Json<Event>) -> Result<Json<Stri
 #[launch]
 async fn rocket() -> _ {
   
-  let db: Database = database::Database::init().await.unwrap();
+  let db: Database = db!();
   
   rocket::build()
     .manage(db)

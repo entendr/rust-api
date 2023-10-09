@@ -14,3 +14,16 @@ pub struct Event {
   pub location: String,
   pub participants: Vec<String>,
 }
+
+impl Default for Event {
+  fn default() -> Self {
+    Event {
+      id: None,
+      name: String::from(""),
+      description: String::from(""),
+      time: DateTime::now(),
+      location: String::from(""),
+      participants: Vec::new(),
+    }
+  }
+}
