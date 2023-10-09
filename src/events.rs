@@ -27,3 +27,24 @@ impl Default for Event {
     }
   }
 }
+
+impl Event {
+  pub fn new(name: String, description: String, time: DateTime, location: String, participants: Vec<String>) -> Self {
+    Event {
+      id: None,
+      name,
+      description,
+      time,
+      location,
+      participants,
+    }
+  }
+}
+
+// macro to create an event
+#[macro_export]
+macro_rules! event {
+  ($name:expr, $description:expr, $time:expr, $location:expr, $participants:expr) => {
+    Event::new($name, $description, $time, $location, $participants)
+  };
+}

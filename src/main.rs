@@ -10,6 +10,7 @@ use dotenv::dotenv;
 use mongodb::{Client, options::ClientOptions, bson::doc};
 use std::error::Error;
 use rocket::{Rocket, Build, State};
+use chrono::prelude::*;
 
 #[macro_use]
 extern crate rocket;
@@ -17,6 +18,22 @@ use rocket::{get, http::Status, serde::json::Json};
 
 use crate::database::Database;
 use crate::events::Event;
+
+#[launch]
+async fn rocket() -> _ {
+  
+  let db: Database = db!();
+
+  // load dummy data
+  // load_dummy_data(&db).await;
+  
+  rocket::build()
+    .manage(db)
+    .mount("/", routes![hello])
+    .mount("/", routes![get_events])
+    .mount("/", routes![put_event])
+    .mount("/", routes![get_event])
+}
 
 ///
 /// Hello world
@@ -78,16 +95,23 @@ async fn put_event(db: &State<Database>, event: Json<Event>) -> Result<Json<Stri
   Ok(Json(id))
 }
 
-#[launch]
-async fn rocket() -> _ {
-  
-  let db: Database = db!();
-  
-  rocket::build()
-    .manage(db)
-    .mount("/", routes![hello])
-    .mount("/", routes![get_events])
-    .mount("/", routes![put_event])
-    .mount("/", routes![get_event])
-}
+async fn load_dummy_data(db: &Database) {
+  // create 10 events and add them to db
+  for i in 0..10 {
+    let event = event!(
+      format!("Event {}", i),
+      format!("Description {}", i),
 
+      // convert now time to mongodb bson time
+
+
+      mongodb::bson::DateTime::from_system_time(std::time::SystemTime::now()),
+      format!("Location {}", i),
+      vec![format!("Participant {}", i)]
+    );
+
+    print!("inserting event: {:?}\n", event);
+    let res = db.insert_event(event).await.unwrap();
+    print!("inserted event: {:?}\n", res);
+  }
+}
